@@ -50,8 +50,9 @@ func rrHandler(w http.ResponseWriter, r *http.Request) {
 	burl := "https://www.douban.com/group/shzf/discussion?start="
 	curl := "https://www.douban.com/group/zufan/discussion?start="
 	urls := []string{aurl, burl, curl}
+	m := make(map[string]bool)
 	for _, v := range urls {
-		if err := clawContents(v, buf, pages, keywords); err != nil {
+		if err := clawContents(v, buf, pages, keywords, m); err != nil {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
@@ -60,7 +61,7 @@ func rrHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(buf.Bytes())
 }
 
-func clawContents(urlbody string, buf *bytes.Buffer, pages int, keywords string) error {
+func clawContents(urlbody string, buf *bytes.Buffer, pages int, keywords string, m map[string]bool) error {
 	for i := 0; i < pages; i += 25 {
 		fullurl := urlbody + strconv.Itoa(i)
 		/*
@@ -86,8 +87,12 @@ func clawContents(urlbody string, buf *bytes.Buffer, pages int, keywords string)
 				dlog.Println(fullurl, err)
 			} else {
 				if strings.Contains(h, "title") && strings.Contains(h, keywords) {
-					buf.WriteString(h)
-					buf.WriteString("</br>")
+					title, _ := s.Find("a").Html()
+					if !m[title] {
+						buf.WriteString(h)
+						buf.WriteString("</br>")
+						m[title] = true
+					}
 				}
 			}
 		})
